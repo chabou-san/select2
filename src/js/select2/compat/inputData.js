@@ -23,10 +23,7 @@ define([
       var selected = [];
 
       if (data.selected || $.inArray(data.id, selectedIds) !== -1) {
-        data.selected = true;
         selected.push(data);
-      } else {
-        data.selected = false;
       }
 
       if (data.children) {
@@ -38,39 +35,45 @@ define([
 
     var selected = [];
 
+    var selectedIds = this.$element.val().split(
+      this._valueSeparator
+    );
+
     for (var d = 0; d < this._currentData.length; d++) {
       var data = this._currentData[d];
 
-      selected.push.apply(
-        selected,
-        getSelected(
-          data,
-          this.$element.val().split(
-            this._valueSeparator
-          )
-        )
-      );
+      selected.push.apply(selected, getSelected(data, selectedIds));
     }
 
     callback(selected);
   };
 
   InputData.prototype.select = function (_, data) {
-    if (!this.options.get('multiple')) {
-      this.current(function (allData) {
-        $.map(allData, function (data) {
-          data.selected = false;
-        });
-      });
+    var self = this;
 
+    data.selected = true;
+
+    if (!this.options.get('multiple')) {
       this.$element.val(data.id);
       this.$element.trigger('change');
     } else {
-      var value = this.$element.val();
-      value += this._valueSeparator + data.id;
+      this.current(function (currentData) {
+        var val = [];
 
-      this.$element.val(value);
-      this.$element.trigger('change');
+        data = [data];
+        data.push.apply(data, currentData);
+
+        for (var d = 0; d < data.length; d++) {
+          var id = data[d].id;
+
+          if ($.inArray(id, val) === - 1) {
+            val.push(id);
+          }
+        }
+
+        self.$element.val(val.join(self._valueSeparator));
+        self.$element.trigger('change');
+      });
     }
   };
 
@@ -79,20 +82,18 @@ define([
 
     data.selected = false;
 
-    this.current(function (allData) {
-      var values = [];
+    this.current(function (currentData) {
+      var val = [];
 
-      for (var d = 0; d < allData.length; d++) {
-        var item = allData[d];
+      for (var d = 0; d < currentData.length; d++) {
+        var id = currentData[d].id;
 
-        if (data.id == item.id) {
-          continue;
+        if (id !== data.id && $.inArray(id, val) === -1) {
+          val.push(id);
         }
-
-        values.push(item.id);
       }
 
-      self.$element.val(values.join(self._valueSeparator));
+      self.$element.val(val.join(self._valueSeparator));
       self.$element.trigger('change');
     });
   };
